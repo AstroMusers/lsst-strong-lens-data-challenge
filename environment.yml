@@ -18,3 +18,4 @@ dependencies:
     - keras==3.10.0
     - tensorflow==2.19.0
     - tensorflow-probability==0.25.0
+    - pydot==4.0.1
