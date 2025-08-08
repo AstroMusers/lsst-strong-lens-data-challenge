@@ -1,0 +1,20 @@
+*.h5
+config.yml
+
+# pytest
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints
+
+# VS Code
+.vscode
+
+# PyCharm
+.idea
+
+# Python cache
+__pycache__
+
+# Mac
+.DS_Store
