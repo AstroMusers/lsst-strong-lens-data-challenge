@@ -13,3 +13,5 @@
 3. Download the data challenge data from https://slchallenge.cbpf.br/challengedata and unzip. Note that depending on how you do this, it might take a while.
 
 4. Set the `data_dir` attribute in your `config.yml` file to the path where you downloaded the data challenge data
+
+5. Run the `organize_data.py` script to produce .jpgs in the format that Tensorflow is expecting
