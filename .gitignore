@@ -9,6 +9,7 @@ config.yml
 
 # VS Code
 .vscode
+*.code-workspace
 
 # PyCharm
 .idea
