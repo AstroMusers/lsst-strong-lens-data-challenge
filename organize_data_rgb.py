@@ -18,7 +18,7 @@ def get_image_data(f):
 
 def main():
     # set which bands and datasets to use
-    bands = ['g', 'i', 'y']
+    bands = ['g', 'r', 'i']
     datasets = ['hsc', 'slsim']
     len_dataset = 50000
     train_frac = 0.9
