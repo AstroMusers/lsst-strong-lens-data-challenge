@@ -40,6 +40,7 @@ def main():
     # set which bands and datasets to use
     bands = ['g', 'r', 'i', 'z', 'y']
     datasets = ['hsc', 'slsim']
+    kinds = ['nonlens', 'lens']
     len_dataset = 50000
     dev = False
 
@@ -51,7 +52,7 @@ def main():
     # read the fits files, produce npz files, and write to appropriate directories
     npz_dict = {}
     for dataset in tqdm(datasets, desc="Datasets"):    
-        for kind in tqdm(['nonlens', 'lens'], desc='Kind', leave=False):
+        for kind in tqdm(kinds, desc='Kind', leave=False):
             image_list = []
             for i in tqdm(range(len_dataset), desc="Images", leave=False):
                 try:

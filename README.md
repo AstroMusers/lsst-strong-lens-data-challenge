@@ -14,4 +14,4 @@
 
 4. Set the `data_dir` attribute in your `config.yml` file to the path where you downloaded the data challenge data
 
-5. Run the `organize_data.py` script to produce .jpgs in the format that Tensorflow is expecting
+5. Run the `organize_data.py` script to preprocess the data and produce .npz files in the format that Tensorflow is expecting
