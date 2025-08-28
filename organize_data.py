@@ -41,7 +41,7 @@ def main():
     bands = ['g', 'r', 'i', 'z', 'y']
     datasets = ['hsc', 'slsim']
     kinds = ['nonlens', 'lens']
-    len_dataset = 50000
+    len_dataset = 2500  # 50000
     dev = False
 
     # read configuration file
@@ -75,6 +75,9 @@ def main():
                     continue
 
             npz_dict[f"{dataset}_{kind}"] = image_list
+
+            # filename = f"{dataset}_{kind}.npz" if not dev else f"{dataset}_{kind}_dev.npz"
+            # np.savez_compressed(os.path.join(data_dir, filename), **npz_dict)
 
         filename = "dataset.npz" if not dev else "dataset_dev.npz"
         np.savez_compressed(os.path.join(data_dir, filename), **npz_dict)
