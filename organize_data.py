@@ -41,7 +41,7 @@ def main():
     bands = ['g', 'r', 'i', 'z', 'y']
     datasets = ['hsc', 'slsim']
     kinds = ['nonlens', 'lens']
-    len_dataset = 2500  # 50000
+    len_dataset = 50000
     dev = False
 
     # read configuration file
@@ -54,6 +54,11 @@ def main():
     for dataset in tqdm(datasets, desc="Datasets"):    
         for kind in tqdm(kinds, desc='Kind', leave=False):
             image_list = []
+
+            # TODO TEMP
+            if dataset == "slsim" and kind == "lens":
+                break
+
             for i in tqdm(range(len_dataset), desc="Images", leave=False):
                 try:
                     ids, images = [], []
@@ -76,11 +81,11 @@ def main():
 
             npz_dict[f"{dataset}_{kind}"] = image_list
 
-            # filename = f"{dataset}_{kind}.npz" if not dev else f"{dataset}_{kind}_dev.npz"
-            # np.savez_compressed(os.path.join(data_dir, filename), **npz_dict)
+            filename = f"{dataset}_{kind}.npz" if not dev else f"{dataset}_{kind}_dev.npz"
+            np.savez_compressed(os.path.join(data_dir, filename), **npz_dict)
 
-        filename = "dataset.npz" if not dev else "dataset_dev.npz"
-        np.savez_compressed(os.path.join(data_dir, filename), **npz_dict)
+        # filename = "dataset.npz" if not dev else "dataset_dev.npz"
+        # np.savez_compressed(os.path.join(data_dir, filename), **npz_dict)
 
 
 if __name__ == '__main__':
