@@ -39,10 +39,10 @@ def find_gamma(image, desired_median=0.2, initial_gamma=0.7):
 def main():
     # set which bands and datasets to use
     bands = ['g', 'r', 'i', 'z', 'y']
-    datasets = ['hsc', 'slsim']
-    kinds = ['nonlens', 'lens']
+    datasets = ['slsim']  # 'hsc', 
+    kinds = ['lens']  # 'nonlens', 
     len_dataset = 50000
-    dev = False
+    dev = True
 
     # read configuration file
     with open('config.yml', 'r') as f:
@@ -56,8 +56,8 @@ def main():
             image_list = []
 
             # TODO TEMP
-            if dataset == "slsim" and kind == "lens":
-                break
+            # if dataset == "slsim" and kind == "lens":
+            #     break
 
             for i in tqdm(range(len_dataset), desc="Images", leave=False):
                 try:
