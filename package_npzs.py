@@ -13,12 +13,16 @@ def main():
     # load the four separate npz files
     with np.load(os.path.join(data_dir, 'hsc_lens.npz')) as data:
         hsc_lenses = data['hsc_lens']
+    print(f'Loaded hsc_lenses: {hsc_lenses.shape}')
     with np.load(os.path.join(data_dir, 'hsc_nonlens.npz')) as data:
         hsc_nonlenses = data['hsc_nonlens']
+    print(f'Loaded hsc_nonlenses: {hsc_nonlenses.shape}')
     with np.load(os.path.join(data_dir, 'slsim_lens.npz')) as data:
         slsim_lenses = data['slsim_lens']
+    print(f'Loaded slsim_lenses: {slsim_lenses.shape}')
     with np.load(os.path.join(data_dir, 'slsim_nonlens.npz')) as data:
         slsim_nonlenses = data['slsim_nonlens']
+    print(f'Loaded slsim_nonlenses: {slsim_nonlenses.shape}')
 
     # combine the images into a single dictionary
     npz_dict = {
@@ -29,8 +33,9 @@ def main():
     }
 
     # write as single npz file
-    filename = "dataset.npz"
-    np.savez_compressed(os.path.join(data_dir, filename), **npz_dict)
+    filepath = os.path.join(data_dir, "dataset.npz")
+    np.savez_compressed(filepath, **npz_dict)
+    print(f'Wrote combined dataset to {filepath}')
 
 
 if __name__ == '__main__':
