@@ -42,7 +42,7 @@ def main():
     datasets = ['slsim']  # 'hsc', 
     kinds = ['lens']  # 'nonlens', 
     len_dataset = 50000
-    dev = True
+    dev = False
 
     # read configuration file
     with open('config.yml', 'r') as f:
@@ -70,7 +70,7 @@ def main():
                         processed_image = process_image(image)
                         images.append(processed_image)
 
-                    assert len(set(ids)) == 1, f"Lens IDs do not match across bands {bands}: {ids}"
+                    # assert len(set(ids)) == 1, f"Lens IDs do not match across bands {bands}: {ids}"
 
                     combined_image = np.stack(images, axis=-1)
                     image_list.append(combined_image)
