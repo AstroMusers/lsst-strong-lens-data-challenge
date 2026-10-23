@@ -1,4 +1,6 @@
 *.h5
+data/
+visuals/
 config.yml
 
 # pytest
