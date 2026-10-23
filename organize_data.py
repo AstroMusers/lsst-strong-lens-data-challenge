@@ -4,21 +4,16 @@ from glob import glob
 
 import numpy as np
 from tqdm import tqdm
-from astropy.io import fits
 from scipy.optimize import minimize
 
-
-def get_image_data(f):
-    """
-    Returns a tuple (Lens ID, image)
-    """
-    fits_data = fits.getdata(f, ext=1)
-    return fits_data[0][0], fits_data[0][1]
+from rgb_jpgs.image_utils import get_image_data, normalize_image
 
 
 def process_image(image):
     # normalize the image to the range [0, 1]
-    image = (image - np.min(image)) / (np.max(image) - np.min(image))
+    image = normalize_image(image)
+    if not np.any(image):
+        return image
 
     # apply gamma correction
     gamma = find_gamma(image, desired_median=0.2)
@@ -70,7 +65,8 @@ def main():
                         processed_image = process_image(image)
                         images.append(processed_image)
 
-                    # assert len(set(ids)) == 1, f"Lens IDs do not match across bands {bands}: {ids}"
+                    if len(set(ids)) != 1:
+                        raise ValueError(f"Lens IDs do not match across bands {bands}: {ids}")
 
                     combined_image = np.stack(images, axis=-1)
                     image_list.append(combined_image)
@@ -90,4 +86,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    

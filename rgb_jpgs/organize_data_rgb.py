@@ -4,16 +4,12 @@ from glob import glob
 
 import numpy as np
 from tqdm import tqdm
-from astropy.io import fits
 from PIL import Image
 
-
-def get_image_data(f):
-    """
-    Returns a tuple (Lens ID, image)
-    """
-    fits_data = fits.getdata(f, ext=1)
-    return fits_data[0][0], fits_data[0][1]
+if __package__:
+    from .image_utils import get_image_data, normalize_image
+else:
+    from image_utils import get_image_data, normalize_image
 
 
 def main():
@@ -35,19 +31,13 @@ def main():
     output_dirs = [train_output_dir, test_output_dir]
     if dev: output_dirs = [d + '_dev' for d in output_dirs]
     for output_dir in output_dirs:
-        lens_output_dir = os.path.join(output_dir, '1_lens')
-        nonlens_output_dir = os.path.join(output_dir, '0_nonlens')
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-            os.makedirs(lens_output_dir)
-            os.makedirs(nonlens_output_dir)
-        else:
-            for subdir in [lens_output_dir, nonlens_output_dir]:
-                if os.path.exists(subdir):
-                    for f in os.listdir(subdir):
-                        file_path = os.path.join(subdir, f)
-                        if os.path.isfile(file_path):
-                            os.remove(file_path)
+        for kind in ['1_lens', '0_nonlens']:
+            subdir = os.path.join(output_dir, kind)
+            os.makedirs(subdir, exist_ok=True)
+            for entry in os.listdir(subdir):
+                file_path = os.path.join(subdir, entry)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
 
     # read the fits files, produce jpgs, and write to appropriate directories
     for dataset in tqdm(datasets, desc="Datasets"):    
@@ -67,17 +57,20 @@ def main():
                     id_g, image_g = get_image_data(fits_g)
                     id_b, image_b = get_image_data(fits_b)
 
-                    assert id_r == id_g == id_b, f"Lens IDs do not match across bands: {id_r}, {id_g}, {id_b}"
+                    if not id_r == id_g == id_b:
+                        raise ValueError(f"Lens IDs do not match across bands: {id_r}, {id_g}, {id_b}")
 
                     rgb_image = np.stack([
-                        (image_r - np.min(image_r)) / (np.max(image_r) - np.min(image_r)),
-                        (image_g - np.min(image_g)) / (np.max(image_g) - np.min(image_g)),
-                        (image_b - np.min(image_b)) / (np.max(image_b) - np.min(image_b))
+                        normalize_image(image_r),
+                        normalize_image(image_g),
+                        normalize_image(image_b)
                     ], axis=-1)
 
                     rgb_uint8 = (rgb_image * 255).astype(np.uint8)
                     img = Image.fromarray(rgb_uint8)
-                    img.save(os.path.join(output_dir, kind, f"{id_r}.jpg"))
+                    output_file = os.path.join(output_dir, kind, f"{dataset}_{i:08d}_{id_r}.jpg")
+                    print(f'Writing to {output_file}...')
+                    img.save(output_file)
                 except Exception as e:
                     print(f"Error processing {i} for {kind[2:]} in {dataset}: {e}")
                     continue
@@ -85,4 +78,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    

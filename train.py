@@ -14,6 +14,7 @@ from tensorflow.keras import layers, models
 from sklearn.metrics import precision_recall_curve, average_precision_score
 import matplotlib.pyplot as plt
 from pprint import pprint
+from package_npzs import read_dataset_archive
 
 print("Number of available GPUs: ", len(tf.config.list_physical_devices('GPU')))
 
@@ -45,11 +46,11 @@ print("Visible GPUs:", tf.config.list_physical_devices('GPU'))
 # %%
 data_dir = config['data_dir']
 
-with np.load(os.path.join(data_dir, 'dataset.npz')) as data:
-    hsc_lenses = data['hsc_lens']
-    hsc_nonlenses = data['hsc_nonlens']
-    slsim_lenses = data['slsim_lens']
-    slsim_nonlenses = data['slsim_nonlens']
+image_datasets = read_dataset_archive(os.path.join(data_dir, 'dataset.npz'))
+hsc_lenses = image_datasets['hsc_lens']
+hsc_nonlenses = image_datasets['hsc_nonlens']
+slsim_lenses = image_datasets['slsim_lens']
+slsim_nonlenses = image_datasets['slsim_nonlens']
 
 print(f'hsc_lens: {hsc_lenses.shape}')
 print(f'hsc_nonlens: {hsc_nonlenses.shape}')
@@ -102,7 +103,7 @@ print(labels.shape)
 
 # %%
 ds = tf_data.Dataset.from_tensor_slices((data, labels))
-ds = ds.shuffle(buffer_size=len(labels), reshuffle_each_iteration=True)
+ds = ds.shuffle(buffer_size=len(labels), reshuffle_each_iteration=False)
 
 # %% [markdown]
 # Split the whole dataset into a training, validation, and test set. The training and validation sets are used in the training process, and the test set is used to evaluate the model's performance against data it hasn't been trained on.
@@ -117,6 +118,7 @@ print(f'end={total_size}, train={train_size}, val={val_size}')
 # Split the dataset
 train_ds = ds.take(train_size)
 val_ds = ds.skip(train_size).take(val_size)
+train_ds = train_ds.shuffle(buffer_size=train_size, reshuffle_each_iteration=True)
 
 print(f"Train size: {train_ds.cardinality()}, Val size: {val_ds.cardinality()}")
 
@@ -327,7 +329,7 @@ start = time.time()
 model.compile(
     optimizer=keras.optimizers.Adam(learning_rate=lr_max),  # peak LR; callback will override per-epoch
     loss=keras.losses.BinaryCrossentropy(from_logits=True),
-    metrics=[keras.metrics.BinaryAccuracy(name="acc")],
+    metrics=[keras.metrics.BinaryAccuracy(name="acc", threshold=0.0)],
 )
 
 early_stopping = keras.callbacks.EarlyStopping(
@@ -387,5 +389,3 @@ plt.show()
 
 # %%
 model.save(f'/data/bwedig/lsst-strong-lens-data-challenge/models/v4_retrain.keras')
-
-
