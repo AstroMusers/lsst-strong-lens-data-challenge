@@ -4,7 +4,7 @@ Can a classifier distinguish strong lenses from non-lenses across HSC and simula
 
 # Setup
 
-From the checkout root, source `scripts/set_repository_path.sh` to set `LSST_STRONG_LENS_DATA_CHALLENGE_PATH` in the current shell. Repository-local inputs and figures can live in the ignored `data/` and `visuals/` directories. The challenge dataset may remain elsewhere; `config.yml` continues to select its location.
+From the checkout root, source `scripts/set_repository_path.sh` to set `LSST_STRONG_LENS_DATA_CHALLENGE_PATH` in the current shell. Repository-local inputs and figures can live in the ignored `data/` and `visuals/` directories. The challenge dataset can remain elsewhere. `config.yml` selects its location.
 
 1. Set up conda environment
 

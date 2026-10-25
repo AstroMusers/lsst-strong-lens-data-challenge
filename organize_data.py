@@ -50,10 +50,6 @@ def main():
         for kind in tqdm(kinds, desc='Kind', leave=False):
             image_list = []
 
-            # TODO TEMP
-            # if dataset == "slsim" and kind == "lens":
-            #     break
-
             for i in tqdm(range(len_dataset), desc="Images", leave=False):
                 try:
                     ids, images = [], []
