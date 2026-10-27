@@ -10,11 +10,12 @@ import keras
 # from keras import layers
 import tensorflow as tf
 from tensorflow import data as tf_data
-from tensorflow.keras import layers, models
+from tensorflow.keras import layers
 from sklearn.metrics import precision_recall_curve, average_precision_score
 import matplotlib.pyplot as plt
 from pprint import pprint
 from package_npzs import read_dataset_archive
+from model import make_model
 
 print("Number of available GPUs: ", len(tf.config.list_physical_devices('GPU')))
 
@@ -27,25 +28,15 @@ if not gpus:
     print("No GPUs found.")
 else:
     try:
-        if len(gpus) > 1:
-            tf.config.set_visible_devices([gpus[0]], 'GPU')  # make only GPU 0 visible
-            tf.config.experimental.set_memory_growth(gpus[0], True)
-            print("Using GPU 0.")
-        else:
-            tf.config.set_visible_devices([gpus[0]], 'GPU')
-            tf.config.experimental.set_memory_growth(gpus[0], True)
-            print("Only one GPU available; using GPU 0.")   
-    except Exception as e:
-        print("Failed to set visible GPU:", e)
+        tf.config.set_visible_devices([gpus[0]], 'GPU')
+        tf.config.experimental.set_memory_growth(gpus[0], True)
+        print("Using GPU 0.")
+    except RuntimeError as error:
+        print("Failed to set visible GPU:", error)
 
 print("Visible GPUs:", tf.config.list_physical_devices('GPU'))
 
-# %% [markdown]
-# The entire processed dataset is contained within `dataset.npz`, so load it.
-
-# %%
 data_dir = config['data_dir']
-
 image_datasets = read_dataset_archive(os.path.join(data_dir, 'dataset.npz'))
 hsc_lenses = image_datasets['hsc_lens']
 hsc_nonlenses = image_datasets['hsc_nonlens']
@@ -57,16 +48,7 @@ print(f'hsc_nonlens: {hsc_nonlenses.shape}')
 print(f'slsim_lens: {slsim_lenses.shape}')
 print(f'slsim_nonlens: {slsim_nonlenses.shape}')
 
-# %% [markdown]
-# Take a quick look at the four parts of the dataset: 
-# 1. HSC Lenses
-# 2. HSC Nonlenses
-# 3. SLSim Lenses
-# 4. SLSim Nonlenses
-
-# %%
 fig, axes = plt.subplots(2, 2, figsize=(11.4, 12), constrained_layout=True)
-
 datasets = [
     (slsim_lenses, "slsim_lenses"),
     (hsc_lenses, "hsc_lenses"),
@@ -90,7 +72,7 @@ plt.suptitle('Dataset Sample')
 plt.show()
 
 # %% [markdown]
-# Organize these four pieces into `data` and `labels` so that we can import it in a way that Tensorflow likes
+# Combine the four image classes and assign binary lens labels.
 
 # %%
 data = np.concatenate([hsc_lenses, slsim_lenses, hsc_nonlenses, slsim_nonlenses], axis=0)
@@ -99,14 +81,14 @@ print(data.shape)
 print(labels.shape)
 
 # %% [markdown]
-# Import the data and labels to a Tensorflow `Dataset`
+# Create a TensorFlow dataset from the image arrays and labels.
 
 # %%
 ds = tf_data.Dataset.from_tensor_slices((data, labels))
 ds = ds.shuffle(buffer_size=len(labels), reshuffle_each_iteration=False)
 
 # %% [markdown]
-# Split the whole dataset into a training, validation, and test set. The training and validation sets are used in the training process, and the test set is used to evaluate the model's performance against data it hasn't been trained on.
+# Shuffle the rows once, then split them into about 95% training and 5% validation. The split stays fixed across epochs, while the training order is reshuffled each epoch.
 
 # %%
 # Calculate split sizes
@@ -123,7 +105,7 @@ train_ds = train_ds.shuffle(buffer_size=train_size, reshuffle_each_iteration=Tru
 print(f"Train size: {train_ds.cardinality()}, Val size: {val_ds.cardinality()}")
 
 # %% [markdown]
-# "Data augmentation" is a way of increasing the size of our training set, which makes the neural net perform better. Here, we're randomly flipping and rotating the images.
+# Training images receive random horizontal and vertical flips and rotations. These transformations expose the classifier to varied image orientations.
 
 # %%
 data_augmentation_layers = [
@@ -136,19 +118,16 @@ def data_augmentation(images):
         images = layer(images)
     return images
 
-# Apply `data_augmentation` to the training images.
+# Apply augmentation to training rows only.
 train_ds = train_ds.map(
     lambda img, label: (data_augmentation(img), label),
     num_parallel_calls=tf_data.AUTOTUNE,
 )
 
 # %%
-# Prefetching samples in GPU memory helps maximize GPU utilization.
+# Prefetch upcoming batches to overlap input preparation with model execution.
 train_ds = train_ds.batch(256).prefetch(tf_data.AUTOTUNE)
 val_ds = val_ds.batch(256).prefetch(tf_data.AUTOTUNE)
-
-# %% [markdown]
-# Build the model
 
 # %%
 # def make_model(input_shape, num_classes):
@@ -180,9 +159,6 @@ val_ds = val_ds.batch(256).prefetch(tf_data.AUTOTUNE)
 #     outputs = layers.Dense(units, activation=None)(x)
     
 #     return models.Model(inputs, outputs)
-
-# %% [markdown]
-# v5 model
 
 # %%
 # def make_model(input_shape, num_classes, l2=1e-4):
@@ -249,53 +225,9 @@ val_ds = val_ds.batch(256).prefetch(tf_data.AUTOTUNE)
 #     return keras.Model(inputs, outputs, name="resnet_like_v1")
 
 # %% [markdown]
-# v4 model
+# Build the shared classifier.
 
 # %%
-def make_model(input_shape, num_classes):
-    inputs = keras.Input(shape=input_shape)
-    num_bands = input_shape[2]
-
-    # Entry block
-    x = layers.Conv2D(128, num_bands, strides=2, padding="same")(inputs)
-    x = layers.BatchNormalization()(x)
-    x = layers.Activation("relu")(x)
-
-    previous_block_activation = x  # Set aside residual
-
-    for size in [256, 512, 728]:
-        x = layers.Activation("relu")(x)
-        x = layers.SeparableConv2D(size, num_bands, padding="same")(x)
-        x = layers.BatchNormalization()(x)
-
-        x = layers.Activation("relu")(x)
-        x = layers.SeparableConv2D(size, num_bands, padding="same")(x)
-        x = layers.BatchNormalization()(x)
-
-        x = layers.MaxPooling2D(num_bands, strides=2, padding="same")(x)
-
-        # Project residual
-        residual = layers.Conv2D(size, 1, strides=2, padding="same")(
-            previous_block_activation
-        )
-        x = layers.add([x, residual])  # Add back residual
-        previous_block_activation = x  # Set aside next residual
-
-    x = layers.SeparableConv2D(1024, num_bands, padding="same")(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.Activation("relu")(x)
-
-    x = layers.GlobalAveragePooling2D()(x)
-    if num_classes == 2:
-        units = 1
-    else:
-        units = num_classes
-
-    x = layers.Dropout(0.25)(x)
-    # We specify activation=None so as to return logits
-    outputs = layers.Dense(units, activation=None)(x)
-    return keras.Model(inputs, outputs)
-
 model = make_model(input_shape=(41, 41, 5), num_classes=2)
 # keras.utils.plot_model(model, show_shapes=True)
 
@@ -303,12 +235,12 @@ model = make_model(input_shape=(41, 41, 5), num_classes=2)
 # Train the model
 
 # %%
-epochs = 100  # 250 should be better
+epochs = 100
 
 # ---- LR schedule (epoch-based warmup + cosine) ----
-lr_max = 1e-3     # your current LR
-lr_min = 1e-6     # floor
-warmup_epochs = 5 # tweak 3–10 if needed
+lr_max = 1e-3
+lr_min = 1e-6
+warmup_epochs = 5
 
 def warmup_cosine(epoch, lr):
     if epoch < warmup_epochs:
@@ -327,7 +259,7 @@ model = make_model(input_shape=(41, 41, 5), num_classes=2)
 start = time.time()
 
 model.compile(
-    optimizer=keras.optimizers.Adam(learning_rate=lr_max),  # peak LR; callback will override per-epoch
+    optimizer=keras.optimizers.Adam(learning_rate=lr_max),
     loss=keras.losses.BinaryCrossentropy(from_logits=True),
     metrics=[keras.metrics.BinaryAccuracy(name="acc", threshold=0.0)],
 )
@@ -355,10 +287,7 @@ end = time.time()
 print(f"Training time: {end - start:.2f} seconds")
 
 # %% [markdown]
-# Plot the training and validation accuracy to sanity check that the training is going as expected. We can identify overfitting and underfitting by looking at this figure:
-# - Ideal Scenario: Training accuracy steadily increases and levels off at a high value. Validation accuracy follows closely and also levels off at a high value.
-# - Overfitting Scenario: Training accuracy keeps increasing and may reach 100%, but validation accuracy peaks early and then decreases.
-# - Underfitting Scenario: Both training and validation accuracy remain low.
+# Compare loss and accuracy on the fixed training and validation rows. A widening gap can signal overfitting. Persistently poor results on both sets can signal underfitting.
 
 # %%
 loss = history.history['loss']

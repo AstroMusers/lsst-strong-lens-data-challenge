@@ -27,6 +27,38 @@ def organizers(monkeypatch):
     )
 
 
+def test_notebooks_reuse_shared_gamma_preprocessing():
+    import json
+
+    notebooks = {
+        'roman_data_challenge.ipynb': {'process_image'},
+        'dev/bryce_load_and_predict.ipynb': {'process_image'},
+        'view_dataset.ipynb': {'find_gamma'},
+    }
+    for relative_path, shared_functions in notebooks.items():
+        notebook_path = ROOT / relative_path
+        print(f'Reading from {notebook_path}...')
+        notebook = json.loads(notebook_path.read_text(encoding='utf-8'))
+        code_sources = [
+            ''.join(cell.get('source', []))
+            for cell in notebook['cells']
+            if cell.get('cell_type') == 'code'
+        ]
+        assert any(
+            f'from organize_data import {function_name}' in source
+            for function_name in shared_functions
+            for source in code_sources
+        )
+        assert not any(
+            f'def {function_name}(' in source
+            for function_name in shared_functions
+            for source in code_sources
+        )
+        if relative_path.endswith('bryce_load_and_predict.ipynb'):
+            assert any('def get_image_data(' in source for source in code_sources)
+            assert not any('from scipy.optimize import minimize' in source for source in code_sources)
+
+
 @pytest.mark.parametrize('dtype', [np.float32, np.float64, np.int16, np.uint16, np.int64, np.uint64, np.bool_])
 def test_constant_images_have_finite_zero_contrast_without_mutating_input(organizers, dtype):
     organizer, _, helpers = organizers
@@ -378,6 +410,9 @@ def test_actual_training_compile_uses_a_logit_accuracy_threshold(logits, truth):
     actual = np.mean((np.asarray(logits) > metric.threshold) == truth)
     expected = np.mean((expit(logits) > 0.5) == truth)
     assert actual == expected
-    definition = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'make_model')
+    model_path = ROOT / 'model.py'
+    print(f'Reading from {model_path}...')
+    model_tree = ast.parse(model_path.read_text())
+    definition = next(node for node in model_tree.body if isinstance(node, ast.FunctionDef) and node.name == 'make_model')
     output_layer = next(node for node in ast.walk(definition) if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == 'Dense')
     assert next(ast.literal_eval(keyword.value) for keyword in output_layer.keywords if keyword.arg == 'activation') is None

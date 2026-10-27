@@ -1,6 +1,6 @@
-# lsst-strong-lens-data-challenge
+# LSST Strong Lens Data Challenge
 
-Can a classifier distinguish strong lenses from non-lenses across HSC and simulated SLSim images? We use these image populations to train lens classifiers and prepare submissions for the LSST Strong Lens Data Challenge.
+We use HSC and simulated SLSim images to train classifiers for the LSST Strong Lens Data Challenge.
 
 # Setup
 
@@ -14,7 +14,7 @@ From the checkout root, source `scripts/set_repository_path.sh` to set `LSST_STR
 
 `cp template_config.yml config.yml`
 
-3. Download the data challenge data from https://slchallenge.cbpf.br/challengedata and unzip. Note that depending on how you do this, it might take a while.
+3. Download and unzip the data challenge archive from https://slchallenge.cbpf.br/challengedata.
 
 4. Set the `data_dir` attribute in your `config.yml` file to the path where you downloaded the data challenge data
 
