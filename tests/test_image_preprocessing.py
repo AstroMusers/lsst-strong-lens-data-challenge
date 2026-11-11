@@ -364,11 +364,17 @@ def test_real_npz_packaging_round_trips_through_training_image_and_label_loading
     path = ROOT / 'train.py'
     print(f'Reading from {path}...')
     tree = ast.parse(path.read_text())
-    names = {'image_datasets', 'hsc_lenses', 'hsc_nonlenses', 'slsim_lenses', 'slsim_nonlenses', 'data', 'labels'}
+    paths = importlib.import_module('repository_paths')
+    monkeypatch.setenv(paths.PATH_ENV_VAR, str(tmp_path))
+    names = {
+        'repository_path', 'config_path', 'data_dir', 'dataset_path',
+        'image_datasets', 'hsc_lenses', 'hsc_nonlenses', 'slsim_lenses',
+        'slsim_nonlenses', 'data', 'labels',
+    }
     end = next(node.lineno for node in tree.body if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == 'ds' for target in node.targets))
-    imports = [node for node in tree.body if isinstance(node, ast.ImportFrom) and node.module == 'package_npzs']
+    imports = [node for node in tree.body if isinstance(node, ast.ImportFrom) and node.module in {'package_npzs', 'repository_paths'}]
     statements = [node for node in tree.body if isinstance(node, ast.Assign) and node.lineno < end and any(isinstance(target, ast.Name) and target.id in names for target in node.targets)]
-    namespace = {'np': np, 'os': os, 'data_dir': str(tmp_path)}
+    namespace = {'np': np, 'os': os, 'config': {'data_dir': str(tmp_path)}}
     exec(compile(ast.Module(body=imports + statements, type_ignores=[]), str(path), 'exec'), namespace)
     order = ['hsc_lens', 'slsim_lens', 'hsc_nonlens', 'slsim_nonlens']
     np.testing.assert_array_equal(namespace['data'], np.concatenate([datasets[key] for key in order]))

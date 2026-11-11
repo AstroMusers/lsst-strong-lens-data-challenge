@@ -41,6 +41,7 @@ def test_training_initializes_gpu_and_dataset_before_plotting(devices):
             experimental=SimpleNamespace(
                 set_memory_growth=lambda device, enabled: gpu_calls.append((device, enabled))))),
         'config': {'data_dir': 'example-data'}, 'os': os,
+        'resolve_repository_path': lambda value: Path(value),
         'read_dataset_archive': read_archive,
         'plt': SimpleNamespace(subplots=lambda *args, **kwargs: ('figure', 'axes')),
         'print': lambda *args: None,
@@ -48,7 +49,7 @@ def test_training_initializes_gpu_and_dataset_before_plotting(devices):
     exec(compile(ast.Module(tree.body[start:stop], type_ignores=[]),
                  str(source_path), 'exec'), namespace)
 
-    assert loaded_paths == [os.path.join('example-data', 'dataset.npz')]
+    assert loaded_paths == [str(Path('example-data') / 'dataset.npz')]
     assert gpu_calls == ([['gpu0'], ('gpu0', True)] if devices else [])
     assert namespace['axes'] == 'axes'
     for images, label in namespace['datasets']:

@@ -4,6 +4,7 @@ import time
 import math
 import yaml
 from glob import glob
+from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 import keras
@@ -16,11 +17,15 @@ import matplotlib.pyplot as plt
 from pprint import pprint
 from package_npzs import read_dataset_archive
 from model import make_model
+from repository_paths import get_model_output_path, get_repository_path, resolve_repository_path
 
 print("Number of available GPUs: ", len(tf.config.list_physical_devices('GPU')))
 
-# read configuration file
-with open('config.yml', 'r') as f:
+# Read configuration and dataset paths relative to the configured repository root.
+repository_path = get_repository_path()
+config_path = repository_path / 'config.yml'
+print(f'Reading from {config_path}...')
+with open(config_path, 'r') as f:
     config = yaml.load(f, Loader=yaml.SafeLoader)
 
 gpus = tf.config.list_physical_devices('GPU')
@@ -36,8 +41,10 @@ else:
 
 print("Visible GPUs:", tf.config.list_physical_devices('GPU'))
 
-data_dir = config['data_dir']
-image_datasets = read_dataset_archive(os.path.join(data_dir, 'dataset.npz'))
+data_dir = resolve_repository_path(config['data_dir'])
+dataset_path = data_dir / 'dataset.npz'
+print(f'Reading from {dataset_path}...')
+image_datasets = read_dataset_archive(str(dataset_path))
 hsc_lenses = image_datasets['hsc_lens']
 hsc_nonlenses = image_datasets['hsc_nonlens']
 slsim_lenses = image_datasets['slsim_lens']
@@ -317,4 +324,8 @@ ax[1].legend()
 plt.show()
 
 # %%
-model.save(f'/data/bwedig/lsst-strong-lens-data-challenge/models/v4_retrain.keras')
+model_path = get_model_output_path('v4_retrain.keras')
+print(f'Writing to {model_path.parent}...')
+model_path.parent.mkdir(parents=True, exist_ok=True)
+print(f'Writing to {model_path}...')
+model.save(str(model_path))

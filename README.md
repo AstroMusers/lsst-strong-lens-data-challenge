@@ -44,3 +44,8 @@ probability threshold of 0.5. Older accuracy histories used a logit threshold
 of 0.5, equivalent to a lens probability of about 0.62. Recompute those metrics
 with the current threshold before comparing results. The cross-entropy loss and
 model outputs are unchanged.
+
+`train.py` resolves relative input paths from
+`LSST_STRONG_LENS_DATA_CHALLENGE_PATH` and saves the retrained model under
+`data/models/v4_retrain.keras` in that checkout. Absolute `data_dir` values keep
+their external location.
