@@ -140,7 +140,7 @@ def test_invalid_images_raise_instead_of_silently_writing_invalid_pixels(organiz
 
 
 @pytest.mark.parametrize('legacy_keyword', [False, True])
-def test_both_organizers_share_the_actual_fits_reader(organizers, tmp_path, capsys, legacy_keyword):
+def test_both_organizers_share_the_actual_fits_reader(organizers, tmp_path, legacy_keyword):
     organizer, rgb_organizer, helpers = organizers
     assert organizer.get_image_data is helpers.get_image_data
     assert rgb_organizer.get_image_data is helpers.get_image_data
@@ -157,7 +157,6 @@ def test_both_organizers_share_the_actual_fits_reader(organizers, tmp_path, caps
 
     assert lens_id == 42
     np.testing.assert_array_equal(restored, image)
-    assert f'Reading from {filename}...' in capsys.readouterr().out
 
 
 def test_rgb_script_can_import_its_helpers_when_launched_from_its_own_directory():

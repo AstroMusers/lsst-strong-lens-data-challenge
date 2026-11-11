@@ -69,7 +69,6 @@ def main():
                     rgb_uint8 = (rgb_image * 255).astype(np.uint8)
                     img = Image.fromarray(rgb_uint8)
                     output_file = os.path.join(output_dir, kind, f"{dataset}_{i:08d}_{id_r}.jpg")
-                    print(f'Writing to {output_file}...')
                     img.save(output_file)
                 except Exception as e:
                     print(f"Error processing {i} for {kind[2:]} in {dataset}: {e}")

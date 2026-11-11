@@ -8,7 +8,6 @@ def get_image_data(filename=None, **keywords):
         filename = keywords.pop('f')
     if keywords:
         raise TypeError(f"Unexpected keyword arguments: {', '.join(keywords)}")
-    print(f'Reading from {filename}...')
     data = fits.getdata(filename, ext=1)
     return data[0][0], data[0][1]
 
